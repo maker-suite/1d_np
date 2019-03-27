@@ -17,9 +17,9 @@ import bmesh
 class Np1d:
     __localenvironment = {
         'use_snap': True,
-        'snap_element': 'VERTEX',
+        'snap_elements': {'VERTEX'},
         'snap_target': 'ACTIVE',
-        'pivot_point': 'MEDIAN_POINT',
+        'transform_pivot_point': 'MEDIAN_POINT',
         'transform_orientation': 'GLOBAL'
     }
     __environment = {}
@@ -36,27 +36,27 @@ class Np1d:
     @staticmethod
     def saveenvironment():
         __class__.__environment['use_snap'] = bpy.context.tool_settings.use_snap
-        __class__.__environment['snap_element'] = bpy.context.tool_settings.snap_element
+        __class__.__environment['snap_elements'] = bpy.context.tool_settings.snap_elements
         __class__.__environment['snap_target'] = bpy.context.tool_settings.snap_target
-        __class__.__environment['pivot_point'] = bpy.context.space_data.pivot_point
-        __class__.__environment['transform_orientation'] = bpy.context.space_data.transform_orientation
+        __class__.__environment['transform_pivot_point'] = bpy.context.tool_settings.transform_pivot_point
+        __class__.__environment['transform_orientation'] = bpy.context.scene.transform_orientation_slots[0].type
 
     @staticmethod
     def setenvironment():
         if __class__.__environment:
             bpy.context.tool_settings.use_snap = __class__.__environment['use_snap']
-            bpy.context.tool_settings.snap_element = __class__.__environment['snap_element']
+            bpy.context.tool_settings.snap_elements = __class__.__environment['snap_elements']
             bpy.context.tool_settings.snap_target = __class__.__environment['snap_target']
-            bpy.context.space_data.pivot_point = __class__.__environment['pivot_point']
-            bpy.context.space_data.transform_orientation = __class__.__environment['transform_orientation']
+            bpy.context.tool_settings.transform_pivot_point = __class__.__environment['transform_pivot_point']
+            bpy.context.scene.transform_orientation_slots[0].type = __class__.__environment['transform_orientation']
 
     @staticmethod
     def setlocalenvironment():
         bpy.context.tool_settings.use_snap = __class__.__localenvironment['use_snap']
-        bpy.context.tool_settings.snap_element = __class__.__localenvironment['snap_element']
+        bpy.context.tool_settings.snap_elements = __class__.__localenvironment['snap_elements']
         bpy.context.tool_settings.snap_target = __class__.__localenvironment['snap_target']
-        bpy.context.space_data.pivot_point = __class__.__localenvironment['pivot_point']
-        bpy.context.space_data.transform_orientation = __class__.__localenvironment['transform_orientation']
+        bpy.context.tool_settings.transform_pivot_point = __class__.__localenvironment['transform_pivot_point']
+        bpy.context.scene.transform_orientation_slots[0].type = __class__.__localenvironment['transform_orientation']
 
     @staticmethod
     def savetempselection():
@@ -94,10 +94,10 @@ class Np1d:
                 __class__.__anchor.hide_render = True
             else:
                 __class__.__anchor = bpy.data.objects[__class__.__anchorname]
-            if __class__.__anchor.hide:
-                __class__.__anchor.hide = False
-            if not __class__.__anchor.layers[bpy.context.screen.scene.active_layer]:
-                __class__.__anchor.layers[bpy.context.screen.scene.active_layer] = True
+            if __class__.__anchor.hide_get():
+                __class__.__anchor.hide_set(False)
+            #if not __class__.__anchor.layers[bpy.context.screen.scene.active_layer]:
+            #    __class__.__anchor.layers[bpy.context.screen.scene.active_layer] = True
         elif bpy.context.active_object.mode == 'EDIT':
             # anchor = vertex.id
             if __class__.__anchor is None or (not isinstance(__class__.__anchor, int)) or (isinstance(__class__.__anchor, int) and __class__.__anchor >= len(bpy.context.active_object.data.vertices)):
@@ -111,7 +111,7 @@ class Np1d:
     @staticmethod
     def selectanchor():
         if bpy.context.active_object.mode == 'OBJECT':
-            __class__.anchor().select = True
+            __class__.anchor().select_set(True)
         elif bpy.context.active_object.mode == 'EDIT':
             anchor = __class__.anchor()
             bpy.ops.object.mode_set(mode='OBJECT')
@@ -122,7 +122,7 @@ class Np1d:
     @staticmethod
     def deselectanchor():
         if bpy.context.active_object.mode == 'OBJECT':
-            __class__.anchor().select = False
+            __class__.anchor().select_set(False)
         elif bpy.context.active_object.mode == 'EDIT':
             anchor = __class__.anchor()
             bpy.ops.object.mode_set(mode='OBJECT')
@@ -132,7 +132,9 @@ class Np1d:
     @staticmethod
     def activateanchor():
         if bpy.context.active_object.mode == 'OBJECT':
-            bpy.context.scene.objects.active = __class__.anchor()
+            #bpy.context.scene.objects.active = __class__.anchor()
+            #bpy.ops.object.select_pattern(pattern=__class__.anchor().name, extend=True)
+            pass
         elif bpy.context.active_object.mode == 'EDIT':
             bm = bmesh.from_edit_mesh(bpy.context.active_object.data)
             bm.verts.ensure_lookup_table()
@@ -146,7 +148,7 @@ class Np1d:
             __class__.savecursor3dposition()
             __class__.activateanchor()
             bpy.ops.view3d.snap_cursor_to_active()
-            anchorlocation = bpy.context.area.spaces.active.cursor_location.copy()
+            anchorlocation = bpy.context.scene.cursor.location.copy()
             __class__.restorecursor3dposition()
             return anchorlocation
 
@@ -175,12 +177,12 @@ class Np1d:
 
     @staticmethod
     def savecursor3dposition():
-        __class__.__cursor3d_location.append(bpy.context.area.spaces.active.cursor_location.copy())
+        __class__.__cursor3d_location.append(bpy.context.scene.cursor.location.copy())
 
     @staticmethod
     def restorecursor3dposition():
         if __class__.__cursor3d_location:
-            bpy.context.area.spaces.active.cursor_location = __class__.__cursor3d_location.pop()
+            bpy.context.scene.cursor.location = __class__.__cursor3d_location.pop()
 
     @staticmethod
     def saveanchorselectionoffset():
@@ -197,7 +199,7 @@ class Np1d:
             bpy.ops.object.mode_set(mode='EDIT')
         __class__.savecursor3dposition()
         bpy.ops.view3d.snap_cursor_to_selected()
-        __class__.__selectionlocation = bpy.context.area.spaces.active.cursor_location.copy()
+        __class__.__selectionlocation = bpy.context.scene.cursor.location.copy()
         __class__.restorecursor3dposition()
 
     @staticmethod
@@ -205,7 +207,7 @@ class Np1d:
         __class__.deselect()
         if bpy.context.active_object.mode == 'OBJECT':
             for obj in __class__.__selection:
-                obj.select = True
+                obj.select_set(True)
         elif bpy.context.active_object.mode == 'EDIT':
             bpy.ops.object.mode_set(mode='OBJECT')
             for vertexid in __class__.__selection:
@@ -222,7 +224,7 @@ class Np1d:
     @staticmethod
     def selectiontoanchor():
         __class__.savecursor3dposition()
-        bpy.context.area.spaces.active.cursor_location = __class__.anchorlocation() - __class__.__anchoroffset
+        bpy.context.scene.cursor.location = __class__.anchorlocation() - __class__.__anchoroffset
         __class__.deselectanchor()
         bpy.ops.view3d.snap_selected_to_cursor(use_offset=True)
         __class__.selectanchor()
@@ -232,7 +234,7 @@ class Np1d:
     def selectiontostartlocation():
         if __class__.__selection:
             __class__.savecursor3dposition()
-            bpy.context.area.spaces.active.cursor_location = __class__.__selectionlocation
+            bpy.context.scene.cursor.location = __class__.__selectionlocation
             __class__.restoreselection()
             bpy.ops.view3d.snap_selected_to_cursor(use_offset=True)
             __class__.restorecursor3dposition()
@@ -261,11 +263,11 @@ class Np1d:
         for point in __class__.__replicationpoints:
             if bpy.context.active_object.mode == 'OBJECT':
                 bpy.ops.object.duplicate(linked=point[1])
-                bpy.context.area.spaces.active.cursor_location = point[0] - __class__.__anchoroffset
+                bpy.context.scene.cursor.location = point[0] - __class__.__anchoroffset
                 bpy.ops.view3d.snap_selected_to_cursor(use_offset=True)
             elif bpy.context.active_object.mode == 'EDIT':
                 bpy.ops.mesh.duplicate()
-                bpy.context.area.spaces.active.cursor_location = point[0] - __class__.__anchoroffset
+                bpy.context.scene.cursor.location = point[0] - __class__.__anchoroffset
                 bpy.ops.view3d.snap_selected_to_cursor(use_offset=True)
         __class__.restoreselection()
         __class__.restorecursor3dposition()

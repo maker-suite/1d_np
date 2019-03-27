@@ -14,7 +14,7 @@ bl_info = {
     'category': 'Mesh',
     'author': 'Nikita Akimov',
     'version': (1, 1, 17),
-    'blender': (2, 79, 0),
+    'blender': (2, 80, 0),
     'location': '3DView window - T-panel - 1D',
     'wiki_url': '',
     'tracker_url': '',
